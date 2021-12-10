@@ -1,5 +1,11 @@
 import { Request, Response } from "express";
-import { getHashedPassword } from "../services/auth.service";
+import { PROD } from "../constant";
+import {
+  createToken,
+  getHashedPassword,
+  verifyPassword,
+  verifyToken,
+} from "../services/auth.service";
 import {
   createUserService,
   getAllUsers,
@@ -25,7 +31,9 @@ export const createUsers = async (
     ...user,
     password: hashedPassword,
   });
-  return res.status(200).json({ newUser });
+  return res
+    .status(200)
+    .json({ token: createToken(newUser.id as unknown as string) });
 };
 
 export const getAllUser = async (req: Request, res: Response) => {
@@ -39,4 +47,49 @@ export const getAllUser = async (req: Request, res: Response) => {
     }));
   }
   return res.json(userProperty);
+};
+
+// create user controller
+export const loginUsers = async (req: Request, res: Response) => {
+  const user = req.body.user;
+
+  //   check if user exist in database
+  const ExistingUser = await getUserByEmail(user.email);
+
+  if (!ExistingUser) {
+    return res.status(400).json({ msg: "user does not exist" });
+  }
+  if (ExistingUser) {
+    console.log(ExistingUser);
+
+    const hashedPassword = ExistingUser.password;
+    const pass = await verifyPassword(hashedPassword, user.password);
+
+    if (!pass) {
+      return res.status(400).json({ msg: "invalid password" });
+    } else {
+      // res.cookie("mif", createToken(ExistingUser.id as unknown as string), {
+      //   maxAge: 1000 * 60 * 60 * 60, // * 24 * 7 * 12
+      //   httpOnly: true,
+      //   sameSite: "lax",
+      //   secure: PROD,
+      // });
+      return res
+        .status(200)
+        .json({ token: createToken(ExistingUser.id as unknown as string) });
+    }
+  }
+};
+
+export const isUser = async (
+  req: Request & { payload?: { userId: any } },
+  res: Response
+) => {
+  let payload = (await req.payload) as any;
+  if(!payload){
+    return res.json({msg: "unauthorized user"})
+  }
+  console.log(payload);
+
+  res.json({ payload: payload });
 };

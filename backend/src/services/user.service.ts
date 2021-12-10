@@ -6,6 +6,11 @@ export const getUserByEmail = async (email: string) => {
   return user;
 };
 
+export const getUserById = async (id: any) => {
+  const user = getMongoRepository(User).findOne({ id: id });
+  return user;
+};
+
 export const createUserService = async (user: User) => {
   const newUser = getMongoRepository(User).create(user);
 
